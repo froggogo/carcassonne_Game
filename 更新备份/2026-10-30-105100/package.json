@@ -1,0 +1,8 @@
+{
+  "name": "carcassonne-web-workshop",
+  "version": "1.0.2",
+  "private": true,
+  "description": "卡卡颂网页版：扩展选择、离线人机与服务器校验的联网房间",
+  "scripts": { "start": "node server.cjs", "test": "node tests/engine.cjs" },
+  "engines": { "node": ">=18" }
+}
