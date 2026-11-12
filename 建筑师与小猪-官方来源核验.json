@@ -1,0 +1,22 @@
+{
+  "checked": "2026-11-04",
+  "officialIndex": "https://cundco.de/en/rules/cc-basegame-expansions",
+  "sources": [
+    {
+      "name": "traders",
+      "url": "https://cundco.de/media/0d/dd/f6/1759057910/CC_ERW_2_2025_rules_EN.pdf",
+      "sha256": "f527c782b568f2d057f3cd2cc2ed97e14570a164b505580cd3a965b8bcb78537",
+      "bytes": 10353488,
+      "lastModified": "Sun, 28 Sep 2025 11:11:50 GMT",
+      "pages": 6
+    },
+    {
+      "name": "faq",
+      "url": "https://cundco.de/media/cc/c6/4c/1758720966/CC_expansions_FAQ.pdf?ts=1779209619",
+      "sha256": "dc42669910218c2d83eb1b4766e9d68d287362e800d4be9f0f9fae0ab3631d56",
+      "bytes": 15651310,
+      "lastModified": "Fri, 26 Sep 2025 13:02:50 GMT",
+      "pages": 11
+    }
+  ]
+}

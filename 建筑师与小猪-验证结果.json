@@ -1,0 +1,37 @@
+{
+  "date": "2026-11-04",
+  "version": "1.1.1",
+  "project": "D:\\Vscode\\store\\PlayForge_Al\\games\\carcassonne-between-mountains",
+  "rules": {
+    "status": "passed",
+    "groups": 53,
+    "suites": {
+      "engine": 23,
+      "dragon-2025": 12,
+      "traders-2025": 18
+    }
+  },
+  "network": {
+    "status": "passed",
+    "groups": 33,
+    "suites": {
+      "network": 18,
+      "dragon-network": 7,
+      "traders-network": 8
+    },
+    "tradersLegalActionsBeforeTrigger": 127
+  },
+  "domCanvas": {
+    "status": "passed",
+    "checks": 89
+  },
+  "chrome": {
+    "status": "blocked",
+    "stage": "Windows isolation launcher, before test script execution",
+    "error": "CreateWindowStationW: 拒绝访问 (os error 5)",
+    "attemptedBrowser": "Google Chrome via Playwright channel chrome",
+    "date": "2026-11-04",
+    "scriptExecuted": false,
+    "screenshots": []
+  }
+}

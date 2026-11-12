@@ -35,6 +35,12 @@ riverSource:{edges:['V','F','F','F'],river:[[0]],source:true},riverLake:{edges:[
 riverStraight:{edges:['V','F','V','F'],river:[[0,2]]},riverBend:{edges:['V','V','F','F'],river:[[0,1]]},
 riverCity:{edges:['V','C','V','F'],river:[[0,2]],cities:[[1]]},riverRoad:{edges:['V','R','V','R'],river:[[0,2]],roads:[[1,3]],overpass:true},
 riverMonastery:{edges:['V','V','F','F'],river:[[0,1]],monastery:true,center:[.7,.7]},
+riverDoubleSourceLeft:{edges:['C','F','V','C'],cities:[[3,0]],river:[[2]],riverEndPos:[.74,.38],riverSpring:true},
+riverDoubleSourceRight:{edges:['V','F','F','F'],river:[[0]],riverEndPos:[.23,.46],riverSpring:true,monastery:true,center:[.76,.73]},
+riverLakeBend:{edges:['F','V','V','F'],river:[[1,2]],garden:true,gardenPos:[.25,.25]},
+riverLakeBendMirror:{edges:['F','F','V','V'],river:[[2,3]],garden:true,gardenPos:[.75,.25]},
+riverHoardLake:{edges:['V','F','F','F'],river:[[0]],lake:true},
+riverDoubleLake:{edges:['F','V','V','F'],river:[[1,2]],garden:true,gardenPos:[.25,.25],double:true},
 hall:{edges:['H','H','H','H'],hall:true},prize:{edges:['C','F','F','F'],cities:[[0]],statue:true,shield:1}
 };
 const memo=new Map();
@@ -58,7 +64,7 @@ function topology(type){
  if(memo.has(type))return memo.get(type);
  const t=TEMPLATES[type],features=[],cities=(t.cities||[]).map((s,i)=>({id:'c'+i,type:'city',sides:s,poly:polygonForCity(s),pos:s.length===1?rotatePoint([.5,.13],s[0]):[.5,.32]}));
  const roads=(t.roads||[]).map((s,i)=>{const end=s.length===1&&cities.length===1&&cities[0].sides.length===1&&((s[0]+2)%4===cities[0].sides[0])?rotatePoint([.5,.26],cities[0].sides[0]):t.center;const line=route(s,end);return{id:'r'+i,type:'road',sides:s,path:line,pos:line.length===2?[(line[0][0]+line[1][0])/2,(line[0][1]+line[1][1])/2]:line[Math.floor(line.length/2)]};});
- const rivers=(t.river||[]).map((s,i)=>({id:'v'+i,type:'river',sides:s,path:route(s,t.source||t.lake?[.5,.48]:[.5,.5]),pos:[.5,.5]}));
+ const rivers=(t.river||[]).map((s,i)=>({id:'v'+i,type:'river',sides:s,path:route(s,t.riverEndPos||(t.source||t.lake?[.5,.48]:[.5,.5])),pos:[.5,.5]}));
  features.push(...cities,...roads,...rivers);
  const cells=new Int16Array((N+1)*(N+1));cells.fill(-1);
  for(let y=0;y<=N;y++)for(let x=0;x<=N;x++){
@@ -81,10 +87,11 @@ function topology(type){
  for(let s=0;s<4;s++)for(let p=0;p<2;p++){const pt=rotatePoint([p?.78:.22,0],s),x=Math.round(pt[0]*N),y=Math.round(pt[1]*N),v=cells[y*(N+1)+x];const f=fields.find(f=>f.id==='f'+v);if(f)f.ports.push(s*2+p);}
  features.push(...fields);
  if(t.monastery)features.push({id:'m',type:'monastery',sides:[],pos:t.center||[.5,.5]});
- if(t.garden)features.push({id:'g',type:'garden',sides:[],pos:[.5,.5]});
+ if(t.garden)features.push({id:'g',type:'garden',sides:[],pos:t.gardenPos||[.5,.5]});
  const result={features,cells,cities,roads,rivers,fields};memo.set(type,result);return result;
 }
 function definition(tile){
+ if(tile.type==='riverDoubleLake')return definition({...tile,type:tile.flip?'riverLakeBendMirror':'riverLakeBend'});
  const t=TEMPLATES[tile.type];const r=tile.rot||0,top=topology(tile.type);
  const edges=t.edges.map((_,i)=>t.edges[(i-r+4)%4]);
  const features=top.features.map(f=>({...f,sides:f.sides.map(s=>(s+r)%4),ports:(f.ports||[]).map(p=>((Math.floor(p/2)+r)%4)*2+p%2),pos:rotatePoint(f.pos,r)}));
@@ -101,14 +108,14 @@ function create(config={}){
  idSeq=0;const seed=config.seed??Math.floor(Math.random()*1e9),rand=rng(seed),extensions=[...new Set(config.expansions||[])].filter(id=>EXP.some(e=>e.id===id));
  const names=config.players||[{name:'你',kind:'human'},{name:'电脑',kind:'ai'}];if(names.length<2||names.length>6)throw new Error('人数应为 2–6 人');
  const players=names.map((p,i)=>({id:p.id||'p'+i,name:String(p.name||'玩家 '+(i+1)).slice(0,20),kind:p.kind||'human',score:0,supply:{normal:7+(extensions.includes('siege')?2:0)+(extensions.includes('circus')?2:0),large:extensions.includes('inns')?1:0,abbot:extensions.includes('abbot')?1:0,builder:extensions.includes('traders')?1:0,pig:extensions.includes('traders')?1:0,mayor:extensions.includes('mayors')?1:0,messenger:extensions.includes('mayors')?1:0,scarecrow:extensions.includes('mayors')?1:0,shepherd:extensions.includes('sheep')?1:0,ringmaster:extensions.includes('circus')?1:0},goods:[0,0,0],hall:extensions.includes('mayors'),emblems:extensions.includes('jousts')?[0,1,2,3,5]:[],prize:0,prizeEmblem:null,ready:true}));
- const g={version:1,seed,random:seed,extensions,players,board:{},deck:baseDeck(),riverDeck:[],turn:0,phase:'tile',current:null,last:null,meeples:[],log:[],revision:0,round:1,ended:false,dragon:null,fairy:null,builderBonus:false,stolen:0,towerDeck:[],towerSupply:20,sheepBag:[1,1,1,1,2,2,2,2,2,3,3,3,3,3,4,4,0,0],performance:[1,3,3,3,3,4,4,4,4,4,5,5,5,6,6,7],circus:null,fort:{rows:[[],[],[]],extras:[[],[],[]],catapults:[false,false,false]},joust:null,buildSupply:{bridge:12,castle:6,barn:6},barns:[],castles:[],animations:[],events:[],winner:[]};
+ const g={version:1,seed,random:seed,extensions,players,board:{},deck:baseDeck(),riverDeck:[],turn:0,phase:'tile',current:null,last:null,meeples:[],log:[],revision:0,round:1,ended:false,dragon:null,fairy:null,builderBonus:false,builderTurn:false,stolen:0,towerDeck:[],towerSupply:20,sheepBag:[1,1,1,1,2,2,2,2,2,3,3,3,3,3,4,4,0,0],performance:[1,3,3,3,3,4,4,4,4,4,5,5,5,6,6,7],circus:null,fort:{rows:[[],[],[]],extras:[[],[],[]],catapults:[false,false,false]},joust:null,buildSupply:{bridge:12,castle:6,barn:6},barns:[],castles:[],animations:[],events:[],winner:[]};
  const types=['cityCap','roadStraight','roadBend','cityCorner','monastery','cityThree','citySplit','cityTurnRoad','garden','cityRoad'];
  const count={inns:23,traders:23,dragon:26,towers:12,mayors:11,jousts:8,siege:17,buildings:15,sheep:18,circus:19};
  for(const id of extensions){if(!count[id])continue;for(let i=0;i<count[id];i++){
   let type=types[i%types.length],extra={expansion:id};
   if(id==='inns'){if(i%3===0){type='roadStraight';extra.inn=true;}if(i===5||i===14){type='cityThree';extra.cathedral=true;}}
-  if(id==='traders'){type=i%3?'cityCorner':'cityCap';extra.good=i%3;}
-  if(id==='dragon'){if(i<6)extra.hoard=true;else if(i<16)extra.dragonSymbol=true;else extra.portal=true;}
+  if(id==='traders'){type=i%3?'cityCorner':'cityCap';if(i<19)extra.good=i<8?0:i<14?1:2;}
+  if(id==='dragon'){if(i<6)extra.hoard=true;else if(i<16)extra.dragonSymbol=true;else if(i<22)extra.portal=true;}
   if(id==='towers')extra.thief=2+(i%5);
   if(id==='siege')extra.siege=i%4===3?[i%3,(i+1)%3]:[i%3];
   if(id==='sheep'){if(i<9)extra.geese=true;else extra.vineyard=true;}
@@ -118,43 +125,49 @@ function create(config={}){
  if(extensions.includes('towers'))g.towerDeck=Array.from({length:5},()=>tile('cityCap',{tower:1,expansion:'towers'}));
  shuffle(g.deck,rand);shuffle(g.performance,rand);
  if(extensions.includes('river')){
-  g.board[key(0,0)]=tile('riverSource',{x:0,y:0,rot:2});
-  g.riverEnd={x:0,y:0,side:2};g.lastRiverBend=null;
+  if(extensions.includes('dragon')){g.doubleRiver=true;const group='double-source';g.board[key(0,0)]=tile('riverDoubleSourceLeft',{x:0,y:0,groupUid:group,groupKind:'riverDoubleSource',part:0});g.board[key(1,0)]=tile('riverDoubleSourceRight',{x:1,y:0,groupUid:group,groupKind:'riverDoubleSource',part:1});g.riverEnds=[{x:0,y:0,side:2,bend:null,branch:'左支流'},{x:1,y:0,side:0,bend:null,branch:'右支流'}];}
+  else{g.board[key(0,0)]=tile('riverSource',{x:0,y:0,rot:2});g.riverEnd={x:0,y:0,side:2};}g.lastRiverBend=null;
   const riverTypes=['riverStraight','riverBend','riverRoad','riverCity','riverStraight','riverBend','riverMonastery','riverCity','riverStraight','riverBend'];
-  g.riverDeck=shuffle(riverTypes.map(t=>tile(t)),rand);g.riverDeck.push(tile('riverLake'));
-  for(const id of extensions)if(count[id]){let extra={expansion:id};if(id==='inns')extra.inn=true;if(id==='traders')extra.good=0;if(id==='towers')extra.tower=1;if(id==='sheep')extra.geese=true;if(id==='circus')extra.circus=true;g.riverDeck.splice(Math.max(0,g.riverDeck.length-1),0,tile(id==='inns'||id==='buildings'?'riverRoad':'riverCity',extra));}
+  g.riverDeck=riverTypes.map(t=>tile(t));if(g.doubleRiver)g.riverDeck.push(tile('riverLake'));shuffle(g.riverDeck,rand);g.riverDeck.push(tile(g.doubleRiver?'riverDoubleLake':'riverLake'));
+  for(const id of extensions)if(count[id]&&id!=='dragon'){let extra={expansion:id};if(id==='inns')extra.inn=true;if(id==='traders')extra.good=0;if(id==='towers')extra.tower=1;if(id==='sheep')extra.geese=true;if(id==='circus')extra.circus=true;g.riverDeck.splice(Math.max(0,g.riverDeck.length-1),0,tile(id==='inns'||id==='buildings'?'riverRoad':'riverCity',extra));}
  }else g.board[key(0,0)]=tile('start',{x:0,y:0});
  if(extensions.includes('siege')){g.fort.capacity=players.length<=3?players.length+1:players.length;}
- if(extensions.includes('dragon')){g.deck.splice(0,5);if(g.riverDeck.length)g.riverDeck[g.riverDeck.length-1].hoard=true;}
+ if(extensions.includes('dragon'))g.deck.splice(0,5);
  if(extensions.includes('jousts')){
   const extra=g.deck.length-71-8,tab=[6,6,5,4,3];let stacks=tab[players.length-2];if(extra>=20)stacks=Math.min(12,stacks+Math.floor(extra/20)*(players.length<=3?2:1));
   const per=Math.max(1,Math.floor(12/(stacks-1))),size=Math.ceil(g.deck.length/stacks);
   g.joust={category:players.length<=4?0:players.length===5?1:2,stacks,per,size,nextAt:g.deck.length-size,prizesLeft:12};
  }
- log(g,'欢迎来到卡卡颂。拼接地形，派遣米宝，争取最高分。');draw(g);return g;
+ g.rulesVersion='2025-dragon-2026-11-03';log(g,'欢迎来到卡卡颂。拼接地形，派遣米宝，争取最高分。');if(g.doubleRiver)log(g,'双河源占两格，可以选择两个河端；普通河湖先封一端，双河湖最后放置。');draw(g);return g;
 }
 function random(g){g.random=(Math.imul(1664525,g.random)+1013904223)>>>0;return g.random/4294967296;}
 function log(g,message){g.log.push({turn:g.round,message});if(g.log.length>80)g.log.shift();}
 function give(g,p,n,why,x,y){if(n<=0)return;g.players[p].score+=n;g.events.push({player:p,points:n,why,x,y});log(g,`${g.players[p].name} +${n} 分 · ${why}`);}
 function frontiers(g){const seen=new Map();for(const t of Object.values(g.board))for(const[dx,dy]of DIR){const x=t.x+dx,y=t.y+dy,k=key(x,y);if(!g.board[k])seen.set(k,{x,y});}return[...seen.values()];}
+function tileParts(t,x,y){if(t.type!=='riverDoubleLake')return[{...t,x,y}];const r=t.rot||0,[dx,dy]=DIR[(2+r)%4],uid=t.uid||'double-preview';return[{...t,type:t.flip?'riverLakeBendMirror':'riverLakeBend',uid:uid+'-a',x,y,groupUid:uid,groupKind:'riverDoubleLake',part:0},{...t,type:'riverHoardLake',uid:uid+'-b',x:x+dx,y:y+dy,hoard:true,groupUid:uid,groupKind:'riverDoubleLake',part:1}];}
+function riverEnds(g){return g.riverEnds|| (g.riverEnd?[{...g.riverEnd,bend:g.lastRiverBend??null}]:[]);}
+function riverConnection(g,t,x,y){const d=definition(t);return riverEnds(g).find(e=>{const[dx,dy]=DIR[e.side];return x===e.x+dx&&y===e.y+dy&&d.edges[(e.side+2)%4]==='V';});}
 function valid(g,t,x,y,bridge=null){
  if(!Number.isInteger(x)||!Number.isInteger(y)||Math.abs(x)>200||Math.abs(y)>200)return{ok:false,reason:'位置超出地图范围'};
- if(g.board[key(x,y)])return{ok:false,reason:'这个位置已经有版图'};
+ const parts=tileParts({...t,bridge:bridge??t.bridge},x,y),occupied=new Set(parts.map(p=>key(p.x,p.y)));
+ for(const p of parts){if(Math.abs(p.x)>200||Math.abs(p.y)>200)return{ok:false,reason:'双格版图超出地图范围'};if(g.board[key(p.x,p.y)])return{ok:false,reason:parts.length>1?'双河湖需要两个连续空格，第二格也不能重叠':'这个位置已经有版图'};}
  const def=definition({...t,bridge:bridge??t.bridge});let adjacent=0;
- for(let s=0;s<4;s++){const[dx,dy]=DIR[s],other=g.board[key(x+dx,y+dy)];if(!other)continue;adjacent++;const a=def.edges[s],b=definition(other).edges[(s+2)%4];if(a!=='H'&&b!=='H'&&a!==b)return{ok:false,reason:`${['上','右','下','左'][s]}侧地形不匹配：${terrain(a)}不能接${terrain(b)}`,side:s};}
+ for(const part of parts)for(let s=0;s<4;s++){const[dx,dy]=DIR[s],other=g.board[key(part.x+dx,part.y+dy)];if(!other)continue;adjacent++;const a=definition(part).edges[s],b=definition(other).edges[(s+2)%4];if(a!=='H'&&b!=='H'&&a!==b)return{ok:false,reason:`${parts.length>1?'双河湖'+(part.part?'藏宝地半格':'河弯半格')+'的':''}${['上','右','下','左'][s]}侧地形不匹配：${terrain(a)}不能接${terrain(b)}`,side:s};}
  if(!adjacent)return{ok:false,reason:'版图至少一条完整边须接住地图，不能只碰角'};
  if(t.type.startsWith('river')){
-  if(!g.riverEnd)return{ok:false,reason:'河流已经封闭'};
-  const e=g.riverEnd,[dx,dy]=DIR[e.side];if(x!==e.x+dx||y!==e.y+dy)return{ok:false,reason:'河流阶段必须接续亮起的开放河端'};
-  const incoming=(e.side+2)%4;if(def.edges[incoming]!=='V')return{ok:false,reason:'河道必须接续已有河水，先旋转版图'};
+  if(!riverEnds(g).length)return{ok:false,reason:'河流已经封闭'};
+  const e=riverConnection(g,t,x,y);if(!e)return{ok:false,reason:'河流必须接续一个开放河端，先选择河端并旋转版图'};
+  const incoming=(e.side+2)%4;
   const next=def.edges.findIndex((v,s)=>v==='V'&&s!==incoming);
-  if(next>=0&&next!==e.side){const sign=(next-e.side+4)%4===1?1:-1;if(g.lastRiverBend===sign)return{ok:false,reason:'河流不能连续两次向同一方向转弯'};}
+  if(t.type==='riverDoubleLake'&&riverEnds(g).length!==1)return{ok:false,reason:'先用普通河湖封闭一条支流，再放最后的双河湖'};
+  if(next>=0&&next!==e.side){const sign=(next-e.side+4)%4===1?1:-1;if((g.riverEnds?e.bend:g.lastRiverBend)===sign)return{ok:false,reason:'同一条支流不能连续两次向同一方向转弯'};}
+  if(next>=0&&t.type!=='riverDoubleLake'){const[dx,dy]=DIR[next];if(g.board[key(x+dx,y+dy)])return{ok:false,reason:'河流不能接回已有版图或合并两个开放河端'};}
  }
  if(bridge!=null){const base=definition({...t,bridge:null});if(!g.extensions.includes('buildings')||g.buildSupply.bridge<1||base.edges[bridge]!=='F'||base.edges[(bridge+2)%4]!=='F')return{ok:false,reason:'桥只能在相对两条纯草地边之间建造'};let road=false;for(const s of[bridge,(bridge+2)%4]){const[dx,dy]=DIR[s],ot=g.board[key(x+dx,y+dy)];if(ot){if(ot.bridge!=null&&definition(ot).edges[(s+2)%4]==='R')return{ok:false,reason:'不能让两个桥端直接相连'};if(definition(ot).edges[(s+2)%4]==='R')road=true;}}if(!road)return{ok:false,reason:'建桥必须接续至少一个已有道路端'};}
  return{ok:true};
 }
 function terrain(e){return{C:'城市',R:'道路',F:'草地',V:'河流',H:'市政厅'}[e]||e;}
-function legalPlacements(g,t=g.current){if(!t)return[];const a=[];for(const pos of frontiers(g))for(let rot=0;rot<4;rot++){const z={...t,rot};if(valid(g,z,pos.x,pos.y).ok)a.push({...pos,rot,bridge:null});else if(g.extensions.includes('buildings')&&g.buildSupply.bridge)for(let bridge=0;bridge<2;bridge++)if(valid(g,z,pos.x,pos.y,bridge).ok)a.push({...pos,rot,bridge});}return a;}
+function legalPlacements(g,t=g.current){if(!t)return[];const a=[];for(const pos of frontiers(g))for(let rot=0;rot<4;rot++)for(const flip of(t.type==='riverDoubleLake'?[0,1]:[t.flip||0])){const z={...t,rot,flip};if(valid(g,z,pos.x,pos.y).ok)a.push({...pos,rot,flip,bridge:null});else if(g.extensions.includes('buildings')&&g.buildSupply.bridge&&t.type!=='riverDoubleLake')for(let bridge=0;bridge<2;bridge++)if(valid(g,z,pos.x,pos.y,bridge).ok)a.push({...pos,rot,flip,bridge});}return a;}
 function graph(g){
  const nodes=new Map(),parent=new Map();
  const find=k=>{let p=k;while(parent.get(p)!==p)p=parent.get(p);while(k!==p){const n=parent.get(k);parent.set(k,p);k=n;}return p;};
@@ -202,24 +215,32 @@ function options(g,p=g.turn){
 }
 function draw(g){
  if(g.ended)return;
+ if(g.dragon?.owner===g.turn&&g.dragon.ownerRound!==g.round&&(g.deck.length||g.riverDeck.length||g.players.some(p=>p.hall||p.prize))){g.current=null;g.phase='dragonReturn';return;}
  if(g.phase==='finalPrizes'){if(g.players.some(p=>p.prize))return;if(g.players.some(p=>p.hall)){g.phase='hallOnly';g.current=null;return;}finish(g);return;}
  if(g.riverDeck.length){g.current=g.riverDeck.shift();g.riverPhase=true;}
  else{g.riverPhase=false;if(!g.deck.length){if(g.players.some(p=>p.prize)){g.phase='finalPrizes';g.current=null;while(!g.players[g.turn].prize)g.turn=(g.turn+1)%g.players.length;return;}if(g.joust&&g.joust.prizesLeft>0&&!g.joust.finalDone){tournament(g,true);g.phase='finalPrizes';g.current=null;if(g.players.some(p=>p.prize)){while(!g.players[g.turn].prize)g.turn=(g.turn+1)%g.players.length;}else{g.phase='tile';draw(g);}return;}if(g.players.some(p=>p.hall)){g.phase='hallOnly';g.current=null;return;}finish(g);return;}if(g.joust&&g.deck.length<=g.joust.nextAt){tournament(g,false);g.joust.nextAt-=g.joust.size;}g.current=g.deck.shift();}
- if(g.dragon?.owner!=null&&g.dragon.owner===g.turn){const hoard=Object.values(g.board).find(t=>t.hoard);if(hoard)g.dragon={x:hoard.x,y:hoard.y,dir:orientDragon(g,hoard.x,hoard.y),owner:null};}
- if(!g.current.drawEventsResolved){
-  if(g.current.dragonSymbol&&g.dragon&&g.dragon.owner==null)dragonMove(g);
-  if(g.current.thief)thieves(g);
-  if(g.current.siege)for(const post of g.current.siege)attack(g,post);
-  g.current.drawEventsResolved=true;
- }
+ prepareCurrent(g);
+}
+function prepareCurrent(g){
+ if(!g.current){draw(g);return;}
+ if(!g.current.dragonEventResolved){g.current.dragonEventResolved=true;if(g.current.dragonSymbol&&g.dragon&&g.dragon.owner==null){g.dragonTask={kind:'movement',step:1};g.phase='dragonMove';log(g,'抽到巨龙符号：先沿现有朝向移动两次，每次走到边界后由当前玩家定向。');return;}}
+ if(!g.current.drawEventsResolved){if(g.current.thief&&!g.current.thiefEventResolved){const uid=g.current.uid;g.current.thiefEventResolved=true;thieves(g);if(g.current.uid!==uid){prepareCurrent(g);return;}}if(g.current.siege)for(const post of g.current.siege)attack(g,post);g.current.drawEventsResolved=true;}
  if(!legalPlacements(g).length){log(g,'抽到的版图没有合法位置，自动移出并重新抽取。');draw(g);return;}
  g.phase=g.players[g.turn].prize?'prize':'tile';
 }
-function orientDragon(g,x,y){
- const choices=[];for(let s=0;s<4;s++){const[dx,dy]=DIR[s];if(!g.board[key(x+dx,y+dy)])continue;let found=false;for(let i=1;i<300;i++){const t=g.board[key(x+dx*i,y+dy*i)];if(!t)break;if(g.meeples.some(m=>{const q=nodePosition(g,m);return q&&q.x===t.x&&q.y===t.y&&!m.barn&&m.kind!=='maiden';}))found=true;}choices.push({s,found});}
- return(choices.find(c=>c.found)||choices[0]||{s:0}).s;
+function dragonDirections(g){
+ if(!g.dragon||g.dragon.owner!=null)return[];const dr=g.dragon,choices=[];
+ for(let d=0;d<4;d++){const[dx,dy]=DIR[d];if(!g.board[key(dr.x+dx,dr.y+dy)])continue;let visible=false;for(let n=1;n<500;n++){if(!g.board[key(dr.x+dx*n,dr.y+dy*n)])break;if(g.meeples.some(m=>{const p=nodePosition(g,m);return p&&p.x===dr.x+dx*n&&p.y===dr.y+dy*n&&!m.barn&&m.kind!=='maiden';}))visible=true;}choices.push({dir:d,visible});}
+ return(choices.some(c=>c.visible)?choices.filter(c=>c.visible):choices).map(c=>c.dir);
 }
-function dragonMove(g){for(let n=0;n<2;n++){const dr=g.dragon,[dx,dy]=DIR[dr.dir];for(let i=0;i<300;i++){const t=g.board[key(dr.x+dx,dr.y+dy)];if(!t)break;dr.x+=dx;dr.y+=dy;const at=g.meeples.filter(m=>{const p=nodePosition(g,m);return p&&p.x===dr.x&&p.y===dr.y&&!m.barn&&m.kind!=='maiden';});const protectedM=at.find(m=>m.id===g.fairy);for(const m of at)if(m!==protectedM)remove(g,m);if(protectedM){dr.owner=protectedM.player;log(g,'仙女保护米宝，巨龙被赶出地图。');return;}}dr.dir=orientDragon(g,dr.x,dr.y);}log(g,'巨龙完成两次直线移动，途经的米宝已回到库存。');}
+function orientDragon(g,x,y){const dr=g.dragon;g.dragon={x,y,owner:null};const dirs=dragonDirections(g);g.dragon=dr;return dirs[0]??0;}
+function dragonPath(g){if(!g.dragon||g.dragon.owner!=null||g.dragon.dir==null)return[];const dr=g.dragon,[dx,dy]=DIR[dr.dir],path=[];for(let n=1;n<500;n++){if(!g.board[key(dr.x+dx*n,dr.y+dy*n)])break;const pos={x:dr.x+dx*n,y:dr.y+dy*n};path.push(pos);if(g.meeples.some(m=>m.id===g.fairy&&nodePosition(g,m)?.x===pos.x&&nodePosition(g,m)?.y===pos.y))break;}return path;}
+function fairyOptions(g){return g.meeples.filter(m=>m.player===g.turn&&!m.barn&&m.kind!=='maiden'&&nodePosition(g,m));}
+function dragonMove(g){
+ const dr=g.dragon,path=dragonPath(g),from={x:dr.x,y:dr.y},removed=[];
+ for(const pos of path){dr.x=pos.x;dr.y=pos.y;const at=g.meeples.filter(m=>{const p=nodePosition(g,m);return p&&p.x===pos.x&&p.y===pos.y&&!m.barn&&m.kind!=='maiden';}),protectedM=at.find(m=>m.id===g.fairy);for(const m of at)if(m!==protectedM){removed.push(m.id);remove(g,m);}if(protectedM){dr.owner=protectedM.player;dr.ownerRound=g.round;g.dragonTrail={from,path,removed,step:g.dragonTask.step,revision:g.revision+1};delete g.dragonTask;log(g,'仙女保护配属米宝，巨龙被赶到 '+g.players[dr.owner].name+' 面前，其余同格米宝收回；移动提前结束。');prepareCurrent(g);return;}}
+ g.dragonTrail={from,path,removed,step:g.dragonTask.step,revision:g.revision+1};g.phase='dragonOrient';log(g,'巨龙第 '+g.dragonTask.step+' 次直线移动结束，请选择合法朝向。');
+}
 function thieves(g){const n=g.current.thief;for(const t of Object.values(g.board))if(t.tower&&!g.meeples.some(m=>m.kind==='watchman'&&m.pos.x===t.x&&m.pos.y===t.y)&&t.tower<5&&g.towerSupply>0){t.tower++;g.towerSupply--;}
  const guards=g.meeples.filter(m=>m.kind==='watchman');if(!guards.length){g.stolen=n;g.current=g.towerDeck.length?g.towerDeck.shift():g.deck.shift();if(!g.current)g.current=tile('cityCap',{tower:1});log(g,'盗贼偷走版图，改抽塔版图。');}else{for(const m of guards){give(g,m.player,n+g.stolen,'守望者悬赏',m.pos.x,m.pos.y);remove(g,m);}g.stolen=0;}}
 function attack(g,post){if(!g.fort.catapults[post]){g.fort.catapults[post]=true;log(g,`投石机在${['骑士','道路','修道院'][post]}岗前推进。`);return;}const all=[...g.fort.rows[post],...g.fort.extras[post]];for(let p=0;p<g.players.length;p++){const n=all.filter(v=>v===p).length;give(g,p,n*3,'岗哨防御');if(!n){const gr=graph(g),m=g.meeples.find(m=>m.player===p&&['normal','large','abbot'].includes(m.kind)&&[post===0?'city':post===1?'road':'monastery',...(post===2?['garden']:[])].includes(gr.get(m.node)?.type));if(m){remove(g,m);log(g,`${g.players[p].name} 缺少守軍，收回一枚对应地图米宝。`);}}g.players[p].supply.normal+=n;}g.fort.rows[post]=[];g.fort.extras[post]=[];g.fort.catapults[post]=false;}
@@ -250,11 +271,11 @@ function settle(g,final=false){
   const max=Math.max(...totals),who=[...new Set(participants.map(m=>m.player))].filter(p=>totals[p]===max),value=scoreValue(g,c,final&& !done||c.type==='field');
   const pos=c.nodes[0].tile;
   for(const p of who)give(g,p,value,({road:'道路',city:'城市',monastery:'修道院',garden:'花园',field:'农夫草地'}[c.type])+(final?' · 终局':''),pos.x,pos.y);
-  if(!final&&['city','road'].includes(c.type)&&!who.includes(g.turn))emptyCompleted=true;
+  if(!final&&['city','road'].includes(c.type)&&(!who.includes(g.turn)||value===0))emptyCompleted=true;
   if(!final&&c.type==='city'){for(const n of c.nodes)if(n.tile.good!=null){g.players[g.turn].goods[n.tile.good]++;log(g,`${g.players[g.turn].name} 获得${['鸡','谷物','布'][n.tile.good]}货物。`);}}
   for(const m of participants){
    const mp=nodePosition(g,m);
-   if(g.fairy===m.id)give(g,m.player,3,'仙女奖励',mp.x,mp.y);
+   if(g.fairy===m.id&&!(final&&g.finalFairyScored))give(g,m.player,3,'仙女奖励',mp.x,mp.y);
    if(m.kind==='ringmaster'){const n=Object.values(g.board).filter(t=>(t.circus||t.acrobat)&&Math.abs(t.x-mp.x)<=1&&Math.abs(t.y-mp.y)<=1).length;give(g,m.player,n*2,'团长奖励',mp.x,mp.y);}
    if(!final&&['monastery','garden'].includes(c.type)){const n=Object.values(g.board).filter(t=>t.vineyard&&Math.abs(t.x-mp.x)<=1&&Math.abs(t.y-mp.y)<=1&&(t.x!==mp.x||t.y!==mp.y)).length;give(g,m.player,n*3,'葡萄园',mp.x,mp.y);}
    if(!final&&m.kind==='messenger'&&c.type==='road'){
@@ -264,11 +285,11 @@ function settle(g,final=false){
    remove(g,m);
   }
  }
- if(!final&&shieldDone){const now=graph(g);for(const m of[...g.meeples])if(m.pig){const c=now.get(m.node),pos=nodePosition(g,m);give(g,m.player,scoreValue(g,c,true),'猪的草地奖励',pos.x,pos.y);g.players[m.player].supply.pig++;delete m.pig;if(m.returnFarmer)remove(g,m);}}
+ if(!final&&shieldDone){const now=graph(g),pending=g.meeples.filter(m=>m.pig).map(m=>{const c=now.get(m.node),pos=nodePosition(g,m);return{id:m.id,player:m.player,points:scoreValue(g,c,true),x:pos.x,y:pos.y};}).sort((a,b)=>((a.player-g.turn+g.players.length)%g.players.length)-((b.player-g.turn+g.players.length)%g.players.length));if(pending.length)g.pigScoring={pending};}
  if(emptyCompleted&&g.extensions.includes('dragon'))g.canFairy=true;
 }
 function performance(g,circus){if(!circus)return;for(const m of g.meeples){if(m.barn||m.kind==='maiden')continue;const pos=nodePosition(g,m);if(pos&&Math.abs(pos.x-circus.x)<=1&&Math.abs(pos.y-circus.y)<=1)give(g,m.player,circus.value,'马戏演出',pos.x,pos.y);}}
-function finish(g){if(g.ended)return;performance(g,g.circus);for(let post=0;post<3;post++){const all=[...g.fort.rows[post],...g.fort.extras[post]];for(let p=0;p<g.players.length;p++)give(g,p,all.filter(v=>v===p).length*3,'最终反击');}
+function finish(g){if(g.ended)return;const fairy=g.meeples.find(m=>m.id===g.fairy);if(fairy){const pos=nodePosition(g,fairy);give(g,fairy.player,3,'仙女 · 终局',pos?.x,pos?.y);}g.finalFairyScored=true;performance(g,g.circus);for(let post=0;post<3;post++){const all=[...g.fort.rows[post],...g.fort.extras[post]];for(let p=0;p<g.players.length;p++)give(g,p,all.filter(v=>v===p).length*3,'最终反击');}
  for(const m of[...g.meeples]){if(m.kind==='watchman')give(g,m.player,5+g.stolen,'守望者终局');if(m.kind==='acrobat')give(g,m.player,5,'杂技演员终局');if(m.kind==='maiden')give(g,m.player,0,'未收回少女');}
  settle(g,true);
  if(g.extensions.includes('traders'))for(let i=0;i<3;i++){const max=Math.max(...g.players.map(p=>p.goods[i]));if(max>0)for(let p=0;p<g.players.length;p++)if(g.players[p].goods[i]===max)give(g,p,10,['鸡','谷物','布'][i]+'货物多数');}
@@ -279,31 +300,49 @@ function resolve(g){
  delete g._meepleUndo;delete g.meepleDraft;
  triggerEnclosed(g);settle(g);
  const t=g.board[key(g.last.x,g.last.y)];if(t.circus){performance(g,g.circus);g.circus={x:t.x,y:t.y,value:g.performance.shift()||3};}
- if(g.canFairy&&g.meeples.some(m=>m.player===g.turn&&!m.barn&&m.kind!=='maiden')){g.phase='fairy';return;}
+ finishResolution(g);
+}
+function finishResolution(g){
+ if(g.pigScoring?.pending.length){beginPigScoring(g,'resolve');return;}
+ if(g.canFairy&&fairyOptions(g).length){g.phase='fairy';log(g,'本回合完成了自己未从中得分的道路或城市，可以把仙女配给自己任意一枚合法地图米宝。');return;}
  advance(g);
 }
-function advance(g){g.canFairy=false;g.current=null;const bonus=g.builderBonus;g.builderBonus=false;if(bonus){g.players[g.turn].supply.builder++;log(g,'建筑师触发额外回合。');}else g.turn=(g.turn+1)%g.players.length;g.round++;g.phase='tile';g.last=null;draw(g);if(['hallOnly','finalPrizes'].includes(g.phase)&&!g.players[g.turn].hall&&!g.players[g.turn].prize){for(let i=0;i<g.players.length;i++){if(g.players[g.turn].hall||g.players[g.turn].prize)break;g.turn=(g.turn+1)%g.players.length;}}
+function advance(g){g.canFairy=false;g.current=null;const bonus=g.builderBonus&&!g.builderTurn;g.builderBonus=false;g.builderTurn=!!bonus;if(bonus){g.players[g.turn].supply.builder++;log(g,'建筑师触发额外回合。');}else g.turn=(g.turn+1)%g.players.length;g.round++;g.phase='tile';g.last=null;draw(g);if(['hallOnly','finalPrizes'].includes(g.phase)&&!g.players[g.turn].hall&&!g.players[g.turn].prize){for(let i=0;i<g.players.length;i++){if(g.players[g.turn].hall||g.players[g.turn].prize)break;g.turn=(g.turn+1)%g.players.length;}}
 }
-function apply(g,action,p=g.turn){
- if(g.ended)return{ok:false,reason:'本局已经结束'};if(p!==g.turn)return{ok:false,reason:'还没有轮到你，请等待当前玩家'};g.events=[];
+function actingPlayer(g){return g.phase==='pigScoring'?g.pigScoring?.pending[0]?.player??g.turn:g.turn;}
+function beginPigScoring(g,resume){
+ const task=g.pigScoring;task.resume=resume;g.phase='pigScoring';const entry=task.pending[0],m=g.meeples.find(m=>m.id===entry.id);
+ if(!entry.scored){give(g,entry.player,entry.points,'小猪计分',entry.x,entry.y);if(m?.pig){g.players[entry.player].supply.pig++;delete m.pig;}if(m)delete m.returnFarmer;entry.scored=true;log(g,g.players[entry.player].name+' 的小猪计分 '+entry.points+' 分并收回；现在可选择保留或收回配属农夫。');}
+}
+function apply(g,action,p=actingPlayer(g)){
+ if(g.ended)return{ok:false,reason:'本局已经结束'};if(p!==actingPlayer(g))return{ok:false,reason:'还没有轮到你，请等待当前玩家'};
+ if(g.phase==='pigScoring'&&action.type!=='pigDecision')return{ok:false,reason:'先由小猪的主人选择保留或收回配属农夫；结束回合后不能撤销'};
+ g.events=[];
  const fail=reason=>({ok:false,reason});const player=g.players[p];
+ if(action.type==='pigDecision'){
+  const task=g.pigScoring,entry=task?.pending[0];if(g.phase!=='pigScoring'||!entry||action.id!==entry.id||typeof action.returnFarmer!=='boolean')return fail('请选择当前计分小猪配属农夫的保留或收回按钮');
+  const m=g.meeples.find(m=>m.id===entry.id);if(action.returnFarmer&&m)remove(g,m);log(g,player.name+(action.returnFarmer?' 收回小猪配属的农夫。':' 保留小猪配属的农夫。'));task.pending.shift();
+  if(task.pending.length)beginPigScoring(g,task.resume);else{const resume=task.resume;delete g.pigScoring;if(resume==='resolve')finishResolution(g);else{g.phase=resume;if(resume==='finalPrizes')advance(g);}}return success(g);
+ }
  if(g.meepleDraft?.type==='abbotReturn'&&!['endTurn','undoMeeple'].includes(action.type))return fail('已预选收回修道院长，请先取消收回，或点击结束回合确认');
  if(action.type==='place'){
   if(!['tile','prize','hallOnly','finalPrizes'].includes(g.phase))return fail('先完成本回合的米宝或特殊行动');
   let t=g.current;if(g.phase==='prize'||g.phase==='finalPrizes'){if(!player.prize)return fail('没有待放的奖图');t=tile('prize',{uid:'prize-'+g.revision,statuePlayer:player.prizeEmblem!=null?p:null});}
   if(action.hall){if(!player.hall)return fail('市政厅已经使用');if(g.phase==='prize'||g.phase==='finalPrizes')return fail('请先放待放奖图');t=tile('hall',{uid:'hall-'+g.revision});}
   if(!t)return fail('普通牌堆已结束，请使用保留的市政厅');
-  t={...t,rot:((action.rot||0)%4+4)%4};const check=valid(g,t,action.x,action.y,action.bridge);if(!check.ok)return check;
+  t={...t,rot:((action.rot||0)%4+4)%4,flip:action.flip??t.flip??0};const check=valid(g,t,action.x,action.y,action.bridge);if(!check.ok)return check;
+  const riverEnd=t.type.startsWith('river')?riverConnection(g,t,action.x,action.y):null;
   const previous=[...g.meeples];t.x=action.x;t.y=action.y;if(action.bridge!=null){t.bridge=action.bridge;g.buildSupply.bridge--;}
-  g.board[key(t.x,t.y)]=t;g.last={x:t.x,y:t.y};
+  const parts=tileParts(t,t.x,t.y);for(const part of parts)g.board[key(part.x,part.y)]=part;g.last={x:t.x,y:t.y};g.lastParts=parts.map(p=>({x:p.x,y:p.y}));g.lakeDragonDone=false;
   if(t.tower){g.towerSupply=Math.max(0,g.towerSupply-1);}
-  if(t.hoard)g.dragon={x:t.x,y:t.y,dir:orientDragon(g,t.x,t.y),owner:null};
-  if(t.type.startsWith('river')){const incoming=(g.riverEnd.side+2)%4,d=definition(t),next=d.edges.findIndex((e,s)=>e==='V'&&s!==incoming);if(next<0)g.riverEnd=null;else{if(next!==g.riverEnd.side)g.lastRiverBend=(next-g.riverEnd.side+4)%4===1?1:-1;g.riverEnd={x:t.x,y:t.y,side:next};}}
+  if(t.type.startsWith('river')){const incoming=(riverEnd.side+2)%4,d=definition(t),next=t.type==='riverDoubleLake'?-1:d.edges.findIndex((e,s)=>e==='V'&&s!==incoming),bend=next>=0&&next!==riverEnd.side?(next-riverEnd.side+4)%4===1?1:-1:riverEnd.bend??g.lastRiverBend;
+   if(g.riverEnds)g.riverEnds=g.riverEnds.flatMap(e=>e===riverEnd?(next<0?[]:[{x:t.x,y:t.y,side:next,bend,branch:e.branch}]):[e]);else{g.riverEnd=next<0?null:{x:t.x,y:t.y,side:next};g.lastRiverBend=bend;}}
   if(t.type==='hall'){player.hall=false;if(g.current){if(g.riverPhase)g.riverDeck.unshift(g.current);else g.deck.unshift(g.current);}for(const m of[...g.meeples])if(m.kind==='mayor'){const pos=nodePosition(g,m);if(pos&&Math.abs(pos.x-t.x)+Math.abs(pos.y-t.y)===1)remove(g,m);}}
-  if(g.phase==='prize'||g.phase==='finalPrizes'){player.prize--;player.prizeEmblem=null;settle(g);g.phase=g.phase==='finalPrizes'?'finalPrizes':'tile';if(g.phase==='finalPrizes'){advance(g);}return success(g);}
-  const after=graph(g),def=definition(t);
-  for(const m of previous){const c=after.get(m.node);if(!c)continue;const extended=def.features.some(f=>after.get(t.uid+':'+f.id)?.id===c.id);if(extended&&m.builder&&t.type!=='hall'&&m.player===p){delete m.builder;g.builderBonus=true;}if(extended&&m.kind==='shepherd'&&m.player===p&&t.type!=='hall')g.sheepChoice=m.id;}
-  g.phase='meeple';g.newMeeple=null;g.built=action.bridge!=null;g.nomination=false;log(g,`${player.name} 放置${tileName(t)}。`);return success(g);
+  if(g.phase==='prize'||g.phase==='finalPrizes'){player.prize--;player.prizeEmblem=null;settle(g);const resume=g.phase==='finalPrizes'?'finalPrizes':'tile';if(g.pigScoring?.pending.length)beginPigScoring(g,resume);else{g.phase=resume;if(g.phase==='finalPrizes')advance(g);}return success(g);}
+  const after=graph(g);
+  for(const m of previous){const c=after.get(m.node);if(!c)continue;const extended=parts.some(part=>definition(part).features.some(f=>after.get(part.uid+':'+f.id)?.id===c.id));if(extended&&m.builder&&!g.builderTurn&&t.type!=='hall'&&m.player===p){delete m.builder;g.builderBonus=true;}if(extended&&m.kind==='shepherd'&&m.player===p&&t.type!=='hall')g.sheepChoice=m.id;}
+  g.phase='meeple';g.newMeeple=null;g.built=action.bridge!=null;g.nomination=false;log(g,`${player.name} 放置${tileName(t)}。`);
+  if(t.hoard){g.dragon={x:t.x,y:t.y,dir:null,owner:null};g.dragonTask={kind:'hoard'};g.phase='dragonOrient';}return success(g);
  }
  if(action.type==='meeple'){
   if(g.phase!=='meeple'||g.newMeeple)return fail('本回合已经放过米宝，或还没有放版图');
@@ -319,7 +358,7 @@ function apply(g,action,p=g.turn){
   }else m=addMeeple(g,p,action.kind,action.node);
   g.newMeeple=m.id;g.meepleDraft.id=m.id;g.meepleDraft.featureType=opt.type;
   if(action.builder&&['normal','large'].includes(m.kind)&&['road','city'].includes(opt.type)&&player.supply.builder){m.builder=true;player.supply.builder--;}
-  if(action.pig&&['normal','large'].includes(m.kind)&&opt.type==='field'&&player.supply.pig){m.pig=true;m.returnFarmer=!!action.returnFarmer;player.supply.pig--;}
+  if(action.pig&&['normal','large'].includes(m.kind)&&opt.type==='field'&&player.supply.pig){m.pig=true;player.supply.pig--;}
   // Revealing sheep and scoring a post/replaced guard waits for End Turn.
   return success(g);
  }
@@ -329,12 +368,20 @@ function apply(g,action,p=g.turn){
   for(const k of Object.keys(g))delete g[k];Object.assign(g,JSON.parse(JSON.stringify(snapshot)));
   g.revision=revision;g.events=[];return success(g);
  }
+ if(action.type==='dragonReturn'){
+  if(g.phase!=='dragonReturn'||g.dragon?.owner!==p)return fail('只有持有巨龙的玩家回合开始时可以选择藏宝地归位');
+  const at=g.board[key(action.x,action.y)];if(!at?.hoard)return fail('请选择地图上已有的巨龙藏宝地');g.dragon={x:at.x,y:at.y,dir:null,owner:null};g.dragonTask={kind:'return'};g.phase='dragonOrient';return success(g);
+ }
+ if(action.type==='dragonMove'){
+  if(g.phase!=='dragonMove'||g.dragonTask?.kind!=='movement')return fail('只能在巨龙移动步骤沿已确定的朝向移动');dragonMove(g);return success(g);
+ }
  if(action.type==='orient'){
-  if(g.phase!=='meeple'||!g.dragon||g.dragon.owner!=null)return fail('只能在自己的行动阶段给地图上的巨龙定向');
-  const s=Number(action.dir);if(!Number.isInteger(s)||s<0||s>3)return fail('方向无效');
-  const dr=g.dragon,choices=[];for(let d=0;d<4;d++){const[dx,dy]=DIR[d];if(!g.board[key(dr.x+dx,dr.y+dy)])continue;let visible=false;for(let n=1;n<300;n++){const t=g.board[key(dr.x+dx*n,dr.y+dy*n)];if(!t)break;if(g.meeples.some(m=>{const p=nodePosition(g,m);return p&&p.x===t.x&&p.y===t.y&&!m.barn&&m.kind!=='maiden';}))visible=true;}choices.push({d,visible});}
-  if(!choices.some(c=>c.d===s)||choices.some(c=>c.visible)&&!choices.some(c=>c.d===s&&c.visible))return fail('巨龙必须朝相邻版图；视野内有米宝时须朝其中一个合法目标');
-  dr.dir=s;return success(g);
+  if(g.phase!=='dragonOrient'||!g.dragonTask||!g.dragon||g.dragon.owner!=null)return fail('只能在放置巨龙或直线移动结束时选择朝向；移动前不能重定向');
+  const dir=Number(action.dir);if(!Number.isInteger(dir)||!dragonDirections(g).includes(dir))return fail('请选择相邻版图方向；视线内有米宝时必须朝其中一枚，包括受仙女保护的米宝');
+  g.dragon.dir=dir;const task=g.dragonTask;
+  if(task.kind==='movement'&&task.step===1){task.step=2;g.phase='dragonMove';}
+  else{delete g.dragonTask;if(task.kind==='movement')prepareCurrent(g);else if(task.kind==='return')draw(g);else if(task.kind==='lake'){g.lakeDragonDone=true;resolve(g);}else g.phase='meeple';}
+  return success(g);
  }
  if(action.type==='endTurn'){
   if(g.phase!=='meeple')return fail('当前不能结束回合');
@@ -354,7 +401,8 @@ function apply(g,action,p=g.turn){
    const abbot=g.meeples.find(m=>m.id===draft.id&&m.player===p&&m.kind==='abbot');
    if(abbot){const c=graph(g).get(abbot.node),pos=nodePosition(g,abbot);give(g,p,scoreValue(g,c,true),'提前收回修道院长',pos.x,pos.y);const vines=Object.values(g.board).filter(t=>t.vineyard&&Math.abs(t.x-pos.x)<=1&&Math.abs(t.y-pos.y)<=1&&(t.x!==pos.x||t.y!==pos.y)).length;give(g,p,vines*3,'葡萄园');if(g.fairy===abbot.id)give(g,p,3,'仙女奖励',pos.x,pos.y);remove(g,abbot);}
   }
-  if(g.sheepChoice){const m=g.meeples.find(m=>m.id===g.sheepChoice);if(m){const c=graph(g).get(m.node);(action.herd||c.open===0&&c.nodes.every(n=>n.ports.every(port=>{const side=Math.floor(port/2),[dx,dy]=DIR[side];return !!g.board[key(n.tile.x+dx,n.tile.y+dy)];})))?herd(g,m):grow(g,m);}g.sheepChoice=null;}resolve(g);return success(g);
+  if(g.sheepChoice){const m=g.meeples.find(m=>m.id===g.sheepChoice);if(m){const c=graph(g).get(m.node);(action.herd||c.open===0&&c.nodes.every(n=>n.ports.every(port=>{const side=Math.floor(port/2),[dx,dy]=DIR[side];return !!g.board[key(n.tile.x+dx,n.tile.y+dy)];})))?herd(g,m):grow(g,m);}g.sheepChoice=null;}
+  const lake=(g.lastParts||[]).map(p=>g.board[key(p.x,p.y)]).find(t=>t?.groupKind==='riverDoubleLake'&&t.hoard);if(lake&&!g.lakeDragonDone){g.dragon={x:lake.x,y:lake.y,dir:null,owner:null};g.dragonTask={kind:'lake'};g.phase='dragonOrient';return success(g);}resolve(g);return success(g);
  }
  if(action.type==='abbot'){
   if(g.phase!=='meeple'||g.newMeeple)return fail('提前收回修道院长必须替代本回合放米宝');const m=g.meeples.find(m=>m.player===p&&m.kind==='abbot'&&(!action.id||m.id===action.id));if(!m)return fail('地图上没有可收回的自己的修道院长');
@@ -363,13 +411,13 @@ function apply(g,action,p=g.turn){
   return success(g);
  }
  if(action.type==='fairy'){
-  if(g.phase!=='fairy')return fail('本回合未获得移动仙女机会');if(action.id){const m=g.meeples.find(m=>m.id===action.id&&m.player===p&&!m.barn&&m.kind!=='maiden');if(!m)return fail('只能保护自己地图上合法的米宝');g.fairy=m.id;}advance(g);return success(g);
+  if(g.phase!=='fairy')return fail('本回合未获得移动仙女机会');if(action.id){const m=fairyOptions(g).find(m=>m.id===action.id);if(!m)return fail('只能保护自己地图上合法的米宝');g.fairy=m.id;}advance(g);return success(g);
  }
  if(action.type==='nominate'){
   if(g.phase!=='meeple'||!g.joust||g.nomination)return fail('本回合没有提名机会');const m=g.meeples.find(m=>m.id===action.id&&m.player===p&&m.emblem==null&&['normal','large','scarecrow'].includes(m.kind));if(!m)return fail('只能提名已有旅人、骑士或农夫');const gr=graph(g),c=gr.get(m.node),t=g.board[key(g.last.x,g.last.y)];if(!['city','road','field'].includes(c?.type)||!definition(t).features.some(f=>gr.get(t.uid+':'+f.id)?.id===c.id)||t.type==='hall')return fail('本回合必须延伸该米宝的地形');const n=Number(action.emblem);if(!player.emblems.includes(n))return fail('没有这个数字的纹章');player.emblems.splice(player.emblems.indexOf(n),1);m.emblem=n;g.nomination=true;return success(g);
  }
  if(action.type==='pyramid'){
-  if(g.phase!=='meeple'||g.newMeeple)return fail('结算金字塔需要替代放米宝');const all=g.meeples.filter(m=>m.kind==='acrobat'&&m.pos.x===action.x&&m.pos.y===action.y);if(all.length!==3||!all.some(m=>m.player===p))return fail('只能结算有自己演员参与的完整金字塔');for(const m of all){give(g,m.player,5,'杂技金字塔',action.x,action.y);g.players[m.player].supply.normal++;g.meeples=g.meeples.filter(q=>q.id!==m.id);}g.newMeeple='pyramid';resolve(g);return success(g);
+  if(g.phase!=='meeple'||g.newMeeple)return fail('结算金字塔需要替代放米宝');const all=g.meeples.filter(m=>m.kind==='acrobat'&&m.pos.x===action.x&&m.pos.y===action.y);if(all.length!==3||!all.some(m=>m.player===p))return fail('只能结算有自己演员参与的完整金字塔');for(const m of all){give(g,m.player,5,'杂技金字塔',action.x,action.y);remove(g,m);}g.newMeeple='pyramid';resolve(g);return success(g);
  }
  if(action.type==='castle'){
   if(g.phase!=='meeple'||g.built||!g.extensions.includes('buildings')||!g.buildSupply.castle)return fail('本回合已建建筑或没有城堡库存');const t=g.board[key(g.last.x,g.last.y)],gr=graph(g),c=gr.get(action.node);if(!c||c.type!=='city'||c.nodes.length!==2||c.open||!c.nodes.some(n=>n.tile.uid===t.uid)||c.meeples.some(m=>m.kind!=='normal'||m.builder))return fail('只有刚完成的两段小城、且没有特殊棋子时可建城堡');if(c.nodes.some(n=>n.sides.some(s=>{const[dx,dy]=DIR[s];return g.board[key(n.tile.x+dx,n.tile.y+dy)]?.type==='hall';})))return fail('接市政厅的小城不能建城堡');const ids=c.nodes.map(n=>n.key);for(const n of c.nodes)n.tile.castle=true;const pos=c.nodes[0].tile;for(const m of c.meeples){m.bornRound=g.round;if(g.fairy===m.id)g.fairy=null;m.kind='maiden';m.pos={x:pos.x,y:pos.y};m.node=null;}g.castles.push({x:pos.x,y:pos.y,nodes:ids});if(!c.meeples.length&&player.supply.normal&&!g.newMeeple){const m=addMeeple(g,p,'normal',null,{kind:'maiden',pos:{x:pos.x,y:pos.y}});g.newMeeple=m.id;}g.buildSupply.castle--;g.built=true;return success(g);
@@ -380,7 +428,7 @@ function apply(g,action,p=g.turn){
  if(action.type==='barn'){
   if(g.phase!=='meeple'||g.built||!g.extensions.includes('buildings')||!g.buildSupply.barn)return fail('本回合已建建筑或没有谷仓');const t=g.board[key(g.last.x,g.last.y)],gr=graph(g);const corner=Number(action.corner);if(![0,1,2,3].includes(corner))return fail('请选择版图角落');const cx=t.x+(corner===1||corner===2?1:0),cy=t.y+(corner>=2?1:0),four=[[cx-1,cy-1,2],[cx,cy-1,3],[cx,cy,0],[cx-1,cy,1]];let field=null;
   for(const[x,y,c]of four){const q=g.board[key(x,y)];if(!q)return fail('谷仓需要四张版图的草地角全部齐全');const d=definition(q),s=c,prev=(s+3)%4;if(d.edges[s]==='C'||d.edges[prev]==='C')return fail('交点含城墙，不能建谷仓');const f=d.features.find(f=>f.type==='field'&&(f.ports.includes(s*2)||f.ports.includes(prev*2+1)));if(f)field=gr.get(q.uid+':'+f.id);}
-  const m=field?.meeples.find(m=>m.player===p&&!m.barn&&(['normal','large'].includes(m.kind)||m.kind==='scarecrow'&&m.lying));if(!m)return fail('该草地需要自己一枚未进入谷仓的农夫');m.barn={x:cx,y:cy};if(m.pig){player.supply.pig++;delete m.pig;}if(m.emblem!=null){player.emblems.push(m.emblem);delete m.emblem;}g.barns.push({x:cx,y:cy,player:p});g.buildSupply.barn--;g.built=true;const n=g.meeples.filter(m=>graph(g).get(m.node)?.type==='field'&&(['normal','large'].includes(m.kind)||m.kind==='scarecrow'&&m.lying)).length;give(g,p,n,'谷仓经营',cx,cy);return success(g);
+  const m=field?.meeples.find(m=>m.player===p&&!m.barn&&(['normal','large'].includes(m.kind)||m.kind==='scarecrow'&&m.lying));if(!m)return fail('该草地需要自己一枚未进入谷仓的农夫');if(g.fairy===m.id)g.fairy=null;m.barn={x:cx,y:cy};if(m.pig){player.supply.pig++;delete m.pig;}if(m.emblem!=null){player.emblems.push(m.emblem);delete m.emblem;}g.barns.push({x:cx,y:cy,player:p});g.buildSupply.barn--;g.built=true;const n=g.meeples.filter(m=>graph(g).get(m.node)?.type==='field'&&(['normal','large'].includes(m.kind)||m.kind==='scarecrow'&&m.lying)).length;give(g,p,n,'谷仓经营',cx,cy);return success(g);
  }
  return fail('未知操作');
 }
@@ -388,7 +436,11 @@ function success(g){g.revision++;return{ok:true};}
 function tileName(t){return(t.hoard?'巨龙藏宝地 · ':t.portal?'魔法门 · ':t.inn?'旅馆 · ':t.cathedral?'大教堂 · ':t.circus?'马戏场 · ':t.acrobat?'杂技场 · ':t.geese?'鹅群 · ':t.vineyard?'葡萄园 · ':t.tower?'高塔 · ':'')+({C:'城市',R:'道路',F:'草地',V:'河流',H:'市政厅'}[definition(t).edges[0]]||'版图')+'版图';}
 function chooseAI(g){
  if(g.phase==='end')return null;
- if(g.phase==='fairy'){const m=g.meeples.find(m=>m.player===g.turn&&!m.barn&&m.kind!=='maiden');return{type:'fairy',id:m?.id};}
+ if(g.phase==='pigScoring'){const entry=g.pigScoring.pending[0];return{type:'pigDecision',id:entry.id,returnFarmer:g.players[entry.player].supply.normal<3};}
+ if(g.phase==='dragonMove')return{type:'dragonMove'};
+ if(g.phase==='dragonOrient')return{type:'orient',dir:dragonDirections(g)[0]};
+ if(g.phase==='dragonReturn'){const t=Object.values(g.board).find(t=>t.hoard);return t?{type:'dragonReturn',x:t.x,y:t.y}:null;}
+ if(g.phase==='fairy'){const m=fairyOptions(g)[0];return{type:'fairy',id:m?.id};}
  if(['tile','prize','hallOnly','finalPrizes'].includes(g.phase)){
   const t=['prize','finalPrizes'].includes(g.phase)?tile('prize'):g.phase==='hallOnly'?tile('hall'):g.current;
   const list=legalPlacements(g,t);if(!list.length){if(g.players[g.turn].hall)return{type:'place',...frontiers(g)[0],rot:0,hall:true};return null;}
@@ -408,5 +460,5 @@ function chooseAI(g){
  return null;
 }
 function view(g,p){const c=JSON.parse(JSON.stringify(g));delete c._meepleUndo;c.deck=c.deck.map(()=>({back:true}));c.riverDeck=c.riverDeck.map(()=>({back:true}));c.sheepBag=c.sheepBag.map(()=>-1);c.performance=c.performance.map(()=>-1);if(c.circus)c.circus.value=-1;delete c.random;delete c.seed;for(const player of c.players)if(player!==c.players[p])player.emblems=player.emblems.map(()=>-1);for(const m of c.meeples)if(m.emblem!=null&&m.player!==p)m.emblem=-1;return c;}
-return{EXP,TEMPLATES,DIR,N,create,apply,valid,frontiers,legalPlacements,graph,definition,topology,scoreValue,complete,options,nodePosition,strength,tileName,chooseAI,view,key,rotatePoint,terrain,finish};
+return{EXP,TEMPLATES,DIR,N,create,apply,valid,frontiers,legalPlacements,graph,definition,topology,scoreValue,complete,options,nodePosition,strength,tileName,chooseAI,view,key,rotatePoint,terrain,finish,tileParts,riverEnds,dragonDirections,dragonPath,fairyOptions,actingPlayer};
 });

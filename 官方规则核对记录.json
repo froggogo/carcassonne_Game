@@ -1,0 +1,21 @@
+{
+  "Checked": "2026-11-03",
+  "Publisher": "Hans im Glück",
+  "OfficialIndex": "https://cundco.de/en/rules/cc-basegame-expansions",
+  "Sources": [
+    {
+      "name": "dragon",
+      "url": "https://cundco.de/media/4c/6e/bc/1759058778/CC_ERW_3_2025_rules_EN.pdf",
+      "sha256": "45c59f2b54ebe09eb4c86749c7e71ed4501318befdb7793823196837edf97140",
+      "bytes": 10330997,
+      "lastModified": "Sun, 28 Sep 2025 11:26:18 GMT"
+    },
+    {
+      "name": "traders",
+      "url": "https://cundco.de/media/0d/dd/f6/1759057910/CC_ERW_2_2025_rules_EN.pdf",
+      "sha256": "f527c782b568f2d057f3cd2cc2ed97e14570a164b505580cd3a965b8bcb78537",
+      "bytes": 10353488,
+      "lastModified": "Sun, 28 Sep 2025 11:11:50 GMT"
+    }
+  ]
+}

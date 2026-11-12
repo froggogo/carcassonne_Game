@@ -1,0 +1,123 @@
+﻿{
+    "Status":  "verified",
+    "PreviousVersion":  "1.0.4",
+    "Version":  "1.1.0",
+    "Target":  "D:\\Vscode\\store\\卡卡颂-山河之间-网页版",
+    "Backup":  "D:\\Vscode\\store\\卡卡颂-山河之间-网页版\\更新备份\\2026-11-03-183122-dragon-2025",
+    "Files":  [
+                  {
+                      "File":  "public\\engine.js",
+                      "PreviouslyExisted":  true,
+                      "PreviousSHA256":  "B54C076A31DE8FFC1EC80B8BB78ACB6A98ACB0953FC2F4FA8566D4713FB2E39B",
+                      "SHA256":  "4221F4AE7ED5AD6B6F35122B590D23F98AC23E2BDDDBD65DCAA1BB5EC536AFE5"
+                  },
+                  {
+                      "File":  "public\\app.js",
+                      "PreviouslyExisted":  true,
+                      "PreviousSHA256":  "32D051454FC5409024942B6B90AECFE0CAC963D906A304980D5E694E2B187B5A",
+                      "SHA256":  "2E47F50FE9B2784CCAB4E3EA9D6C92A6D243F9D9963D51C183CA49332AF69AFE"
+                  },
+                  {
+                      "File":  "public\\art.js",
+                      "PreviouslyExisted":  true,
+                      "PreviousSHA256":  "7A8660F22A6CCA59C7958774420C43A8070707B30E774A75FA627CC5EBF10243",
+                      "SHA256":  "93A7EC9A4824B81BB92B1C14AC3737A3E8006735C154F1E4C93A5511D121D2FD"
+                  },
+                  {
+                      "File":  "public\\style.css",
+                      "PreviouslyExisted":  true,
+                      "PreviousSHA256":  "F12543FBCFB633FBADC35151F74AC21E079BAF55853533C7755731AD79510F0F",
+                      "SHA256":  "58FC25284C3913D3BA31AFAA14638163A988A47FA54AF386AD895050B3AF9377"
+                  },
+                  {
+                      "File":  "public\\index.html",
+                      "PreviouslyExisted":  true,
+                      "PreviousSHA256":  "BA3C007AC183527616013568397767EE6EE4936AF2EE1741C4EFAD2ED5E0634A",
+                      "SHA256":  "02FB59B1E2C29C6A2C3665B10AA49C5F07BBD438158B84652C8D37D38DB533D4"
+                  },
+                  {
+                      "File":  "package.json",
+                      "PreviouslyExisted":  true,
+                      "PreviousSHA256":  "21DD5C43356BDA534E0028920147E0E0F3E2890F9C51401FB0C0D9CB3B563225",
+                      "SHA256":  "C0D3593B0DBD6A5788E3235F0222FE2C43BBD1793DF5C5A0ED25FB2519CF59F5"
+                  },
+                  {
+                      "File":  "README.md",
+                      "PreviouslyExisted":  true,
+                      "PreviousSHA256":  "2B42EAF23B24243C10990E048318073F6BDDC54431E4BA248BF40799DF1A7A91",
+                      "SHA256":  "1CBB1B1D6054C0D4C1B6AFC914B923324839A457FF3333F1024EF422B8A68D89"
+                  },
+                  {
+                      "File":  "验证记录.md",
+                      "PreviouslyExisted":  true,
+                      "PreviousSHA256":  "0FCD1F59484D153D351D740E4C95DD1B3509D93B7C87F2AEB6B5A54B31710DD2",
+                      "SHA256":  "E2FC7A8AC81DCAAC3B5F4B13A755E2149863899A1C52F6BEE82B066652E2C4B5"
+                  },
+                  {
+                      "File":  "界面检查结果.json",
+                      "PreviouslyExisted":  true,
+                      "PreviousSHA256":  "EEADF982D666D904E88AFDFDF905DFA1098897EB0FEB3F436E4D3CEE19684186",
+                      "SHA256":  "67A25AEB5C218DA7D4DE3955D688A83E89A590D7329EB5AFB336A8336DF1395D"
+                  },
+                  {
+                      "File":  "tests\\dragon-2025.cjs",
+                      "PreviouslyExisted":  false,
+                      "PreviousSHA256":  null,
+                      "SHA256":  "CEE6385D0CEB8717BDB7B5F3BDFFA36322EAC3EF730ED8ACB081B03747D17BDD"
+                  },
+                  {
+                      "File":  "tests\\dragon-network.cjs",
+                      "PreviouslyExisted":  false,
+                      "PreviousSHA256":  null,
+                      "SHA256":  "CB68C08E5011DDB0E346007EA9B30262B393CAE0FD361058E6AF5D577907B6BB"
+                  },
+                  {
+                      "File":  "巨龙与仙女-操作与规则.md",
+                      "PreviouslyExisted":  false,
+                      "PreviousSHA256":  null,
+                      "SHA256":  "8DAD6112A068BE24C97CF6D9E243E699B89C18B65F7E1159B79F7DA96535BF2A"
+                  },
+                  {
+                      "File":  "官方规则核对记录.json",
+                      "PreviouslyExisted":  false,
+                      "PreviousSHA256":  null,
+                      "SHA256":  "CB63F0A6865E76527596B61E7D6E627BA60117C632304B94DDC5136C016CEEEF"
+                  },
+                  {
+                      "File":  "public\\official-rules\\dragon-2025.pdf",
+                      "PreviouslyExisted":  false,
+                      "PreviousSHA256":  null,
+                      "SHA256":  "45C59F2B54EBE09EB4C86749C7E71ED4501318BEFDB7793823196837EDF97140"
+                  },
+                  {
+                      "File":  "public\\official-rules\\traders-2025.pdf",
+                      "PreviouslyExisted":  false,
+                      "PreviousSHA256":  null,
+                      "SHA256":  "F527C782B568F2D057F3CD2CC2ED97E14570A164B505580CD3A965B8BCB78537"
+                  },
+                  {
+                      "File":  "美术预览\\dragon-fairy-goods-atlas.png",
+                      "PreviouslyExisted":  false,
+                      "PreviousSHA256":  null,
+                      "SHA256":  "DB1CC681772832762D355EDE87F8DF2A3089D3A407B8C7C96A04C2B5895D5B52"
+                  },
+                  {
+                      "File":  "美术预览\\dragon-double-source.png",
+                      "PreviouslyExisted":  false,
+                      "PreviousSHA256":  null,
+                      "SHA256":  "00642B067B6067FAC74DF808A5A41001A4A9FABE0A1B0602FC04BB396D134009"
+                  },
+                  {
+                      "File":  "美术预览\\dragon-route-goods.png",
+                      "PreviouslyExisted":  false,
+                      "PreviousSHA256":  null,
+                      "SHA256":  "90BB21F440F33DDAFDD985EA82698F02504669CE5E3ED8ED469529D08DDEB9EF"
+                  },
+                  {
+                      "File":  "美术预览\\fairy-protection.png",
+                      "PreviouslyExisted":  false,
+                      "PreviousSHA256":  null,
+                      "SHA256":  "513210728CC88A54CDBBFD6BB7C39665DCCB5879116E466D4C0B86193323D206"
+                  }
+              ]
+}

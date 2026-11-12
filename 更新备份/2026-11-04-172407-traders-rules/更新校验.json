@@ -1,0 +1,93 @@
+{
+  "target": "D:\\Vscode\\store\\PlayForge_Al\\games\\carcassonne-between-mountains",
+  "backup": "D:\\Vscode\\store\\PlayForge_Al\\games\\carcassonne-between-mountains\\更新备份\\2026-11-04-172407-traders-rules",
+  "files": [
+    {
+      "file": "public/engine.js",
+      "before": "4221f4ae7ed5ad6b6f35122b590d23f98ac23e2bdddbd65dcaa1bb5ec536afe5",
+      "after": "41264e9ba6a8a225a0105e7485b2f68135e8a9fdd20f809bf053148d12dd524a"
+    },
+    {
+      "file": "public/app.js",
+      "before": "2e47f50fe9b2784ccab4e3ea9d6c92a6d243f9d9963d51c183ca49332af69afe",
+      "after": "fd96dbf4ddbc71cece78d68e36c0ff7a782469ad88db54a46bef0d43ff7bc7d3"
+    },
+    {
+      "file": "public/rules.js",
+      "before": "c17723cd53349614ca9139c249b46a2c7ca986520bc7399e859c95430bc5d453",
+      "after": "7846f1695046652c10614a79aaf29b6a39f750612009935c47453029cf7fddba"
+    },
+    {
+      "file": "public/style.css",
+      "before": "58fc25284c3913d3ba31afaa14638163a988a47fa54af386ad895050b3af9377",
+      "after": "e5af7972cde1259030b2a1c12188992de1bce72cf84f173c9841a347d68b1279"
+    },
+    {
+      "file": "package.json",
+      "before": "c0d3593b0dbd6a5788e3235f0222fe2c43bbd1793df5c5a0ed25fb2519cf59f5",
+      "after": "944bb06406accc310384326f08e264dcce64e16b10d062ff953be5d16eae8dd9"
+    },
+    {
+      "file": "README.md",
+      "before": "1cbb1b1d6054c0d4c1b6afc914b923324839a457ff3333f1024ef422b8a68d89",
+      "after": "e346402af109bd99400f8883bd3725f57fabc0c21d96b0cb51f55f67f92b478a"
+    },
+    {
+      "file": "public/official-rules/traders-2025.pdf",
+      "before": "f527c782b568f2d057f3cd2cc2ed97e14570a164b505580cd3a965b8bcb78537",
+      "after": "f527c782b568f2d057f3cd2cc2ed97e14570a164b505580cd3a965b8bcb78537"
+    },
+    {
+      "file": "public/official-rules/faq-2025.pdf",
+      "before": null,
+      "after": "dc42669910218c2d83eb1b4766e9d68d287362e800d4be9f0f9fae0ab3631d56"
+    },
+    {
+      "file": "建筑师与小猪-官方来源核验.json",
+      "before": null,
+      "after": "1bfbe455e2f4e7b6fe69bbdf4a3e4b2e38b790736892fda5dc86b51c4e27f620"
+    },
+    {
+      "file": "建筑师与小猪-2025规则核对.md",
+      "before": null,
+      "after": "b514c8c2f9d1388b40de0dfb997106143aa6250f3ac4e1be72e3f58ce7fb6cc5"
+    },
+    {
+      "file": "界面检查结果.json",
+      "before": "67a25aeb5c218da7d4de3955d688a83e89a590d7329eb5afb336a8336df1395d",
+      "after": "e7c081ca323a1ab841d4e7870334ca023c734f3e553e43f0509051334c8a0b54"
+    },
+    {
+      "file": "建筑师与小猪-验证结果.json",
+      "before": null,
+      "after": "3d6cdcb562c659c99e7c2e1143cca66b924d69c41132cfce41089b73fb7d9f3d"
+    },
+    {
+      "file": "tests/traders-chrome.py",
+      "before": null,
+      "after": "c932dd197eb708f71bba7222f72c86bb515b11a38e8e7e85c745665068d5fa5d"
+    },
+    {
+      "file": "美术预览/pig-scoring-choice.png",
+      "before": null,
+      "after": "8d1a2470987b3e0f0efd5730588406b210248fecb0ec8faf02dcb78129079b7a"
+    },
+    {
+      "file": "验证记录.md",
+      "before": "e2fc7a8ac81dcaac3b5f4b13a755e2149863899a1c52f6bee82b066652e2c4b5",
+      "after": "48b53ba3cda759f7312e162b05f368fd3a39c7e93645b633240ff78025d893ce"
+    },
+    {
+      "file": "tests/traders-2025.cjs",
+      "before": null,
+      "after": "8a80dad709719723fd277da707af898a532fcc3ba42429af961ca588e15db884"
+    },
+    {
+      "file": "tests/traders-network.cjs",
+      "before": null,
+      "after": "243eb024898372d847a7c188c8c9742375500bcfbca326b2b66ce658b4313999"
+    }
+  ],
+  "status": "verified",
+  "version": "1.1.1"
+}
